@@ -27,12 +27,20 @@ module Gala
       self.application_data = headers["applicationData"]
     end
 
-    def decrypt(certificate_pem, private_key_pem)
+    def decrypt(cert, pkey)
       self.class.validate_signature(signature, ephemeral_public_key, data, transaction_id, application_data)
 
-      certificate = OpenSSL::X509::Certificate.new(certificate_pem)
+      if cert.is_a?(OpenSSL::X509::Certificate)
+        certificate = cert
+      else
+        certificate = OpenSSL::X509::Certificate.new(cert)
+      end
       merchant_id = self.class.extract_merchant_id(certificate)
-      private_key = OpenSSL::PKey::EC.new(private_key_pem)
+      if pkey.is_a?(OpenSSL::PKey::EC)
+        private_key = pkey
+      else
+        OpenSSL::PKey::EC.new(pkey)
+      end
       shared_secret = self.class.generate_shared_secret(private_key, ephemeral_public_key)
       symmetric_key = self.class.generate_symmetric_key(merchant_id, shared_secret)
 
@@ -111,7 +119,7 @@ module Gala
       end
 
       def decrypt(encrypted_data, symmetric_key)
-        init_length = 12
+        init_length = 16
         init_vector = 0.chr * init_length
         mode = ::AEAD::Cipher.new('aes-256-gcm')
         cipher = mode.new(symmetric_key, iv_len: init_length)
