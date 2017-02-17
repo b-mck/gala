@@ -111,7 +111,7 @@ module Gala
       end
 
       def decrypt(encrypted_data, symmetric_key)
-        init_length = 16
+        init_length = 12
         init_vector = 0.chr * init_length
         mode = ::AEAD::Cipher.new('aes-256-gcm')
         cipher = mode.new(symmetric_key, iv_len: init_length)
