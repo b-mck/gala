@@ -1,6 +1,5 @@
 require 'openssl'
 require 'base64'
-require 'aead'
 
 module Gala
     class PaymentToken
@@ -126,5 +125,54 @@ module Gala
                 cipher.decrypt(init_vector, '', encrypted_data)
             end
         end
+        raise MissingMerchantIdError unless merchant_id_field
+        val = merchant_id_field.value
+        val[2..(val.length - 1)]
+      end
+
+      def generate_shared_secret(private_key, ephemeral_public_key)
+        public_ec = OpenSSL::PKey::EC.new(Base64.decode64(ephemeral_public_key))
+        point = OpenSSL::PKey::EC::Point.new(private_key.group, public_ec.public_key.to_bn)
+        private_key.dh_compute_key(point)
+      end
+
+      # Derive the symmetric key using the key derivation function described in NIST SP 800-56A, section 5.8.1
+      #   http://csrc.nist.gov/publications/nistpubs/800-56A/SP800-56A_Revision1_Mar08-2007.pdf
+      def generate_symmetric_key(merchant_id, shared_secret)
+
+        kdf_algorithm = "\x0D" + 'id-aes256-GCM'
+        kdf_party_v = merchant_id.scan(/../).inject("") { |binary,hn| binary << hn.to_i(16).chr } # Converts each pair of hex characters into bytes in a string.
+        kdf_info = kdf_algorithm + "Apple" + kdf_party_v
+
+        digest = Digest::SHA256.new
+        digest << 0.chr * 3
+        digest << 1.chr
+        digest << shared_secret
+        digest << kdf_info
+        digest.digest
+      end
+
+      def decrypt(encrypted_data, symmetric_key)
+        # Initialization vector of 16 null bytes
+        iv_length = 16
+        # 0.chr => "\x00"
+        iv = 0.chr * iv_length
+
+        # Last 16 bytes (iv_length) of encrypted data
+        tag = encrypted_data[-iv_length..-1]
+        # Data without tag
+        encrypted_data = encrypted_data[0..(-iv_length - 1)]
+
+        cipher = OpenSSL::Cipher::AES.new(256, :GCM).decrypt
+        cipher.key = symmetric_key
+        cipher.iv_len = iv_length
+        cipher.iv = iv
+
+        # Decipher without associated authentication data
+        cipher.auth_tag = tag
+        cipher.auth_data = ''
+
+        cipher.update(encrypted_data) + cipher.final
+      end
     end
 end
