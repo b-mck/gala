@@ -6,11 +6,21 @@ Gala is available under the MIT License.
 
 ## Install
 
-Add to your `Gemfile`:
+Add both `gala` and `aead` to your `Gemfile`. Specifying `aead` is necessary to pull in the Shopify version of the library which has been updated to support Ruby versions 2.2 and above.
 
 ```ruby
-gem "gala", git: "https://github.com/spreedly/gala.git"
+gem "gala", "~> 0.3.1"
+gem 'aead', git: 'https://github.com/Shopify/aead.git', ref: '340e7718d8bd9c1fcf3c443e32f439436ea2b70d'
 ```
+
+If you need to track a development branch or reference functionality not yet contained in the RubyGem release you can specify the gala repo directly.
+
+```ruby
+gem "gala", git: "https://github.com/spreedly/gala.git", ref: :master
+gem 'aead', git: 'https://github.com/Shopify/aead.git', ref: '340e7718d8bd9c1fcf3c443e32f439436ea2b70d'
+```
+
+Then `bundle install` to fetch Gala into your local environment.
 
 ## Usage
 
@@ -49,12 +59,49 @@ JSON.parse(decrypted_json)
 ## Testing
 
 ```session
-$ ruby test/payment_token_test.rb
-...
-5 tests, 18 assertions, 0 failures, 0 errors, 0 skips
+$ rake test
+Started
+......
+
+Finished in 0.017918 seconds.
 ```
+
+## Releasing
+
+To cut a new gem:
+
+### Setup RubyGems account
+
+Make sure you have a [RubyGems account](https://rubygems.org) and have setup your local gem credentials with something like this:
+
+```bash
+$ curl -u rwdaigle https://rubygems.org/api/v1/api_key.yaml > ~/.gem/credentials; chmod 0600 ~/.gem/credentials
+<enter rubygems account password>
+```
+
+If you are not yet listed as a gem owner, you will need to [request access](http://guides.rubygems.org/command-reference/#gem-owner) from @rwdaigle.
+
+### Release
+
+Build and release the gem with (all changes should be committed and pushed to Github):
+
+```bash
+$ rake release
+```
+
+## Changelog
+
+### v0.3.1
+
+* Use Shopify aead library for compatibility w/ Ruby >= v2.2
+
+### v0.3.0
+
+* Verify payment token signature
 
 ## Contributors
 
-* [jnormore](https://github.com/jnormore) for his help with figuring out how to decrypt this thing.
-* [mrezentes](https://github.com/mrezentes) implemented the signature verification.
+* [dankimio](https://github.com/dankimio)
+* [davidsantoso](https://github.com/davidsantoso)
+* [mrezentes](https://github.com/mrezentes)
+* [jnormore](https://github.com/jnormore)
