@@ -38,7 +38,7 @@ module Gala
             if pkey.is_a?(OpenSSL::PKey::EC)
                 private_key = pkey
             else
-                OpenSSL::PKey::EC.new(pkey)
+                private_key = OpenSSL::PKey::EC.new(pkey)
             end
             shared_secret = self.class.generate_shared_secret(private_key, ephemeral_public_key)
             symmetric_key = self.class.generate_symmetric_key(merchant_id, shared_secret)
